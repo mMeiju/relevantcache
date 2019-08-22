@@ -1,13 +1,14 @@
 // relevantcache package manages "relevant" cache keys in some cache backend (now redis).
-// Or, you can use as simple KVS storage, but cannot use redis specific features
+// Or, you can use as simple KVS storage, but then cannot use redis specific features
 // like MGET, HGET, HMGET, ..., you can use GET/SET/DEL only.
 //
 // Describe:
 //
 // occationally some of caches are relevant like:
 //  cacheA -> cacheB -> cacheC ...
-// Then, when cacheA has been destroied, we also delete cacheB because they are relevant.
-// And, cacheB has been destoried, cacheC will be destoried.
+//
+// When cacheA has been destroyed, we also delete cacheB because they are relevant.
+// And, when cacheB has been destroyed, cacheC will be destroyed.
 //
 // Strategy:
 //
