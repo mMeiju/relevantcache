@@ -86,7 +86,7 @@ This package uses a first of N bytes in cache record as relevant cache metadata,
 [key]: ![relevant cache keys as comma contanetion data]@[split keys (currently no use)]@[cache data...]
 ```
 
-The first character of `!` indicats (record has a metadata), and following, relevant cache keys, and split keys can be seen with delimiter `@`.
+The first character of `!` indicates (record has a metadata), and following, relevant cache keys, and split keys can be seen with delimiter `@`.
 
 ### GET
 
