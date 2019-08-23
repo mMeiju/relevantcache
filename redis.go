@@ -4,23 +4,24 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"time"
 
 	"crypto/tls"
 	"net/url"
 
-	"github.com/gomodule/redigo/redis"
+	"github.com/go-redis/redis"
 )
 
 // Redis backend struct
 type RedisCache struct {
-	conn redis.Conn
+	conn *redis.Client
 }
 
 // Create RedisCache pointer with some options
 // Currently enabled options are:
 //
 // rc.WithSkipTLSVerify(bool): Skip TLS verification
-func NewRedis(endpoint string, opts ...option) (*RedisCache, error) {
+func NewRedisCache(endpoint string, opts ...option) (*RedisCache, error) {
 	var skipVerify bool
 	for _, o := range opts {
 		switch o.name {
@@ -32,21 +33,27 @@ func NewRedis(endpoint string, opts ...option) (*RedisCache, error) {
 	}
 
 	u, err := url.Parse(endpoint)
-	var options []redis.DialOption
-	if u.Scheme == tlsProtocol {
-		hp := strings.SplitN(u.Host, ":", 2)
-		options = append(
-			options,
-			redis.DialUseTLS(true),
-			redis.DialTLSConfig(&tls.Config{ServerName: hp[0]}),
-		)
-		if skipVerify {
-			options = append(options, redis.DialTLSSkipVerify(true))
-		}
-	}
-	conn, err := redis.Dial("tcp", u.Host, options...)
 	if err != nil {
 		return nil, err
+	}
+	options := &redis.Options{
+		Addr: u.Host,
+	}
+	if u.Scheme == tlsProtocol {
+		hp := strings.SplitN(u.Host, ":", 2)
+		options.TLSConfig = &tls.Config{
+			ServerName:         hp[0],
+			InsecureSkipVerify: false,
+		}
+		if skipVerify {
+			options.TLSConfig.InsecureSkipVerify = true
+		}
+	}
+	conn := redis.NewClient(options)
+	if pong, err := conn.Ping().Result(); err != nil {
+		return nil, err
+	} else if pong != "PONG" {
+		return nil, fmt.Errorf("failed to receive PONG from server")
 	}
 	return &RedisCache{
 		conn: conn,
@@ -65,7 +72,7 @@ func (r *RedisCache) Get(item interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	b, err := redis.Bytes(r.conn.Do("GET", key))
+	b, err := r.conn.Get(key).Bytes()
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +88,7 @@ func (r *RedisCache) Get(item interface{}) ([]byte, error) {
 // count is 2: deal with first argument as cache key, second argument as value. TTL is 0 (no expiration)
 // count is 3: deal with first argument as cache key, second argument as value, third argument as TTL
 func (r *RedisCache) Set(args ...interface{}) (err error) {
-	var key interface{}
+	var key string
 	var value interface{}
 	var ttl int
 
@@ -97,21 +104,20 @@ func (r *RedisCache) Set(args ...interface{}) (err error) {
 		value = item.encode()
 		ttl = int(item.ttl)
 	case 2:
-		key = args[0]
+		key = args[0].(string)
 		value = args[1]
 		ttl = 0
 	case 3:
-		key = args[0]
+		key = args[0].(string)
 		value = args[1]
 		ttl = args[2].(int)
 	}
 
+	var expire time.Duration
 	if ttl > 0 {
-		_, err = r.conn.Do("SETEX", key, ttl, value)
-	} else {
-		_, err = r.conn.Do("SET", key, value)
+		expire = time.Duration(ttl) * time.Second
 	}
-	return err
+	return r.conn.Set(key, value, expire).Err()
 }
 
 // Wrap of redis.DEL
@@ -127,20 +133,19 @@ func (r *RedisCache) Del(item interface{}) error {
 		return err
 	}
 
-	_, err = r.conn.Do("DEL", keys...)
-	return err
+	return r.conn.Del(keys...).Err()
 }
 
 // Resolve and factory of relevant cahce keys.
 // To resolve relevant cahe keys, we access to redis eatch time.
 // It might be affect to performance, so we recommend to nesting cahe at least less than 4 or 5.
-func (r *RedisCache) factoryRelevantKeys(key interface{}) ([]interface{}, error) {
-	b, err := redis.Bytes(r.conn.Do("GET", key))
+func (r *RedisCache) factoryRelevantKeys(key string) ([]string, error) {
+	b, err := r.conn.Get(key).Bytes()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get record for delete. Key is %v, %s", key, err.Error())
 	}
 
-	relevantKeys := []interface{}{key}
+	relevantKeys := []string{key}
 	keys, _ := decodeMeta(b)
 	if keys == nil {
 		return relevantKeys, nil
@@ -155,3 +160,5 @@ func (r *RedisCache) factoryRelevantKeys(key interface{}) ([]interface{}, error)
 	}
 	return relevantKeys, nil
 }
+
+var _ Cache = (*RedisCache)(nil)

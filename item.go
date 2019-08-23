@@ -77,7 +77,7 @@ func decodeMeta(dat []byte) ([]byte, []byte) {
 }
 
 // Consider type and return as type conversion-ed value
-func getKey(v interface{}) (interface{}, error) {
+func getKey(v interface{}) (string, error) {
 	switch t := v.(type) {
 	case *Item:
 		return t.cacheKey(), nil
@@ -86,6 +86,6 @@ func getKey(v interface{}) (interface{}, error) {
 	case []byte:
 		return string(t), nil
 	default:
-		return nil, fmt.Errorf("Invalid key type. key accepts only string, []byte, and *Item.")
+		return "", fmt.Errorf("Invalid key type. key accepts only string, []byte, and *Item.")
 	}
 }

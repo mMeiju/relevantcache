@@ -7,44 +7,35 @@ import (
 	rc "github.com/ysugimoto/relevantcache"
 )
 
-const redisUrl = "redis://127.0.0.1:6379"
-
-func TestRedisCacheConnectRedis(t *testing.T) {
-	c, err := rc.NewRedisCache(redisUrl)
-	assert.NoError(t, err)
-	assert.NotNil(t, c)
-	c.Close()
-}
-
-func TestRedisCacheGetCacheWithSimpleString(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+func TestMemoryCacheGetCacheWithSimpleString(t *testing.T) {
+	c := rc.NewMemoryCahe()
 	defer c.Close()
 
-	err := c.Conn().Set("foo", "bar", 0).Err()
+	err := c.Set("foo", "bar", 0)
 	assert.NoError(t, err)
 	v, err := c.Get("foo")
 	assert.NoError(t, err)
 	assert.Equal(t, []byte("bar"), v)
 }
 
-func TestRedisCacheSetCacheWithPrimitiveData(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+func TestMemoryCacheSetCacheWithPrimitiveData(t *testing.T) {
+	c := rc.NewMemoryCahe()
 	defer c.Close()
 
 	err := c.Set("key", "value")
 	assert.NoError(t, err)
 }
 
-func TestRedisCacheSetCacheWithPrimitiveDataIncludeTTL(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+func TestMemoryCacheSetCacheWithPrimitiveDataIncludeTTL(t *testing.T) {
+	c := rc.NewMemoryCahe()
 	defer c.Close()
 
 	err := c.Set("key", "value", 100)
 	assert.NoError(t, err)
 }
 
-func TestRedisCacheSetCacheWithItem(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+func TestMemoryCacheSetCacheWithItem(t *testing.T) {
+	c := rc.NewMemoryCahe()
 	defer c.Close()
 
 	item := rc.NewItem("child", 1).Value("value")
@@ -55,24 +46,24 @@ func TestRedisCacheSetCacheWithItem(t *testing.T) {
 	assert.Equal(t, []byte("value"), v)
 }
 
-func TestRedisCacheDelCacheWithPrimitiveString(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+func TestMemoryCacheDelCacheWithPrimitiveString(t *testing.T) {
+	c := rc.NewMemoryCahe()
 	defer c.Close()
 
-	err := c.Conn().Set("lorem", "ipsum", 0).Err()
+	err := c.Set("lorem", "ipsum", 0)
 	assert.NoError(t, err)
 	err = c.Del("lorem")
 	assert.NoError(t, err)
 
-	err = c.Conn().Get("lorem").Err()
+	_, err = c.Get("lorem")
 	assert.Error(t, err)
 }
 
-func TestRedisCacheFactoryRelevantKeys(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+func TestMemoryCacheFactoryRelevantKeys(t *testing.T) {
+	c := rc.NewMemoryCahe()
 	defer c.Close()
 
-	err := c.Conn().Set("parent1", "parent", 0).Err()
+	err := c.Set("parent1", "parent", 0)
 	assert.NoError(t, err)
 
 	// Store with relevant key
@@ -86,11 +77,11 @@ func TestRedisCacheFactoryRelevantKeys(t *testing.T) {
 	assert.Equal(t, keys[1], "parent1")
 }
 
-func TestRedisCacheDelCacheWithRelevantItemRecursively(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+func TestMemoryCacheDelCacheWithRelevantItemRecursively(t *testing.T) {
+	c := rc.NewMemoryCahe()
 	defer c.Close()
 
-	err := c.Conn().Set("parent1", "parent", 0).Err()
+	err := c.Set("parent1", "parent", 0)
 	assert.NoError(t, err)
 
 	// Store with relevant key
@@ -101,8 +92,8 @@ func TestRedisCacheDelCacheWithRelevantItemRecursively(t *testing.T) {
 
 	// Delete and ensure deleted relevant key
 	assert.NoError(t, c.Del("ancestor100"))
-	err = c.Conn().Get("parent1").Err()
+	_, err = c.Get("parent1")
 	assert.Error(t, err)
-	err = c.Conn().Get("child10").Err()
+	_, err = c.Get("child10")
 	assert.Error(t, err)
 }

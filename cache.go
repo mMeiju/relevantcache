@@ -31,7 +31,7 @@ var (
 // All methods accepts as interface{} because argument can be passed as string or *Item
 type Cache interface {
 	Get(item interface{}) ([]byte, error)
-	Set(item interface{}) error
+	Set(args ...interface{}) error
 	Del(item interface{}) error
 	Close() error
 }
