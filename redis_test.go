@@ -72,25 +72,25 @@ func TestRedisCacheFactoryRelevantKeys(t *testing.T) {
 	c, _ := rc.NewRedisCache(redisUrl)
 	defer c.Close()
 
-	err := c.Conn().Set("parent1", "parent", 0).Err()
+	err := c.Conn().Set("parent_1", "parent", 0).Err()
 	assert.NoError(t, err)
 
 	// Store with relevant key
 	item := rc.NewItem("child", 10).Value("child").RelevantTo("parent", 1)
 	assert.NoError(t, c.Set(item))
 
-	keys, err := c.FactoryRelevantKeys("child10")
+	keys, err := c.FactoryRelevantKeys("child_10")
 	assert.NoError(t, err)
 	assert.Len(t, keys, 2)
-	assert.Equal(t, keys[0], "child10")
-	assert.Equal(t, keys[1], "parent1")
+	assert.Equal(t, keys[0], "child_10")
+	assert.Equal(t, keys[1], "parent_1")
 }
 
 func TestRedisCacheDelCacheWithRelevantItemRecursively(t *testing.T) {
 	c, _ := rc.NewRedisCache(redisUrl)
 	defer c.Close()
 
-	err := c.Conn().Set("parent1", "parent", 0).Err()
+	err := c.Conn().Set("parent_1", "parent", 0).Err()
 	assert.NoError(t, err)
 
 	// Store with relevant key
@@ -100,9 +100,30 @@ func TestRedisCacheDelCacheWithRelevantItemRecursively(t *testing.T) {
 	assert.NoError(t, c.Set(item))
 
 	// Delete and ensure deleted relevant key
-	assert.NoError(t, c.Del("ancestor100"))
-	err = c.Conn().Get("parent1").Err()
+	assert.NoError(t, c.Del("ancestor_100"))
+	err = c.Conn().Get("parent_1").Err()
 	assert.Error(t, err)
-	err = c.Conn().Get("child10").Err()
+	err = c.Conn().Get("child_10").Err()
 	assert.Error(t, err)
+}
+
+func TestRedisCacheFactoryRelevantKeysWithAsterisk(t *testing.T) {
+	c, _ := rc.NewRedisCache(redisUrl)
+	defer c.Close()
+
+	err := c.Set("asterisk_1", "asterisk", 0)
+	assert.NoError(t, err)
+	err = c.Set("asterisk_2", "asterisk", 0)
+	assert.NoError(t, err)
+
+	// Store with relevant key
+	item := rc.NewItem("child", 10).Value("child").RelevantTo("asterisk*")
+	assert.NoError(t, c.Set(item))
+
+	keys, err := c.FactoryRelevantKeys("child_10")
+	assert.NoError(t, err)
+	assert.Len(t, keys, 3)
+	assert.Contains(t, keys, "child_10")
+	assert.Contains(t, keys, "asterisk_1")
+	assert.Contains(t, keys, "asterisk_2")
 }

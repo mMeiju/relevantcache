@@ -3,6 +3,8 @@ package relevantcache
 import (
 	"bytes"
 	"fmt"
+	"regexp"
+	"strings"
 	"sync"
 	"time"
 )
@@ -130,6 +132,10 @@ func (m *MemoryCache) Dump() string {
 // To resolve relevant cahe keys, we access to redis eatch time.
 // It might be affect to performance, so we recommend to nesting cahe at least less than 4 or 5.
 func (m *MemoryCache) factoryRelevantKeys(key string) ([]string, error) {
+	// When key contains asterisk sign, whe should list as KEYS command to match against keys
+	if strings.Contains(key, "*") {
+		return m.factoryRelevantKeysWithAsterisk(key)
+	}
 	m.mu.Lock()
 	b, ok := m.data[key]
 	if !ok {
@@ -156,6 +162,31 @@ func (m *MemoryCache) factoryRelevantKeys(key string) ([]string, error) {
 		relevantKeys = append(relevantKeys, rKeys...)
 	}
 	return relevantKeys, nil
+}
+
+// Dealing asterisk sign
+func (m *MemoryCache) factoryRelevantKeysWithAsterisk(key string) ([]string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	regex, err := regexp.Compile(
+		strings.ReplaceAll(key, "*", ".*"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compile regex on dealing asterisk sign: %s", err.Error())
+	}
+	keys := []string{}
+	for k, v := range m.data {
+		if !regex.MatchString(k) {
+			continue
+		}
+		if v.Expired() {
+			delete(m.data, k)
+			continue
+		}
+		keys = append(keys, k)
+	}
+	return keys, nil
 }
 
 var _ Cache = (*MemoryCache)(nil)

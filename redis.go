@@ -136,6 +136,8 @@ func (r *RedisCache) Del(item interface{}) error {
 	keys, err := r.factoryRelevantKeys(key)
 	if err != nil {
 		return err
+	} else if len(keys) == 0 {
+		return nil
 	}
 
 	return r.conn.Del(keys...).Err()
@@ -145,6 +147,11 @@ func (r *RedisCache) Del(item interface{}) error {
 // To resolve relevant cahe keys, we access to redis eatch time.
 // It might be affect to performance, so we recommend to nesting cahe at least less than 4 or 5.
 func (r *RedisCache) factoryRelevantKeys(key string) ([]string, error) {
+	// When key contains asterisk sign, whe should list as KEYS command to match against keys
+	if strings.Contains(key, "*") {
+		return r.factoryRelevantKeysWithAsterisk(key)
+	}
+
 	b, err := r.conn.Get(key).Bytes()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get record for delete. Key is %v, %s", key, err.Error())
@@ -162,6 +169,23 @@ func (r *RedisCache) factoryRelevantKeys(key string) ([]string, error) {
 			return nil, err
 		}
 		relevantKeys = append(relevantKeys, rKeys...)
+	}
+	return relevantKeys, nil
+}
+
+// Dealing asterisk sign
+func (r *RedisCache) factoryRelevantKeysWithAsterisk(key string) ([]string, error) {
+	keys, err := r.conn.Keys(key).Result()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list keys for %s, %s", key, err.Error())
+	}
+	relevantKeys := []string{}
+	for _, k := range keys {
+		ks, err := r.factoryRelevantKeys(k)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list keys recursively for %s, %s", k, err.Error())
+		}
+		relevantKeys = append(relevantKeys, ks...)
 	}
 	return relevantKeys, nil
 }

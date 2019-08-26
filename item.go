@@ -14,16 +14,31 @@ type Item struct {
 	value    interface{}
 }
 
+func genKey(args []interface{}) string {
+	keys := make([]string, len(args))
+	for i, v := range args {
+		keys[i] = fmt.Sprint(v)
+	}
+	return strings.Join(keys, "_")
+}
+
 // Crate Item pointer. argment accepts any amounts, types. Arguments becomes cache key.
 func NewItem(args ...interface{}) *Item {
 	return &Item{
-		key:      fmt.Sprint(args...),
+		key:      genKey(args),
 		relevant: []*Item{},
 	}
 }
 
 // Declare relevant cache keys
 func (i *Item) RelevantTo(args ...interface{}) *Item {
+	i.relevant = append(i.relevant, NewItem(args...))
+	return i
+}
+
+// Declare relevant cache keys with asterisk sign suffix
+func (i *Item) RelevantAll(args ...interface{}) *Item {
+	args = append(args, "*")
 	i.relevant = append(i.relevant, NewItem(args...))
 	return i
 }
