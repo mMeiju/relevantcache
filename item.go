@@ -14,7 +14,7 @@ type Item struct {
 	value    interface{}
 }
 
-func genKey(args []interface{}) string {
+func KeyGen(args ...interface{}) string {
 	keys := make([]string, len(args))
 	for i, v := range args {
 		keys[i] = fmt.Sprint(v)
@@ -25,7 +25,7 @@ func genKey(args []interface{}) string {
 // Crate Item pointer. argment accepts any amounts, types. Arguments becomes cache key.
 func NewItem(args ...interface{}) *Item {
 	return &Item{
-		key:      genKey(args),
+		key:      KeyGen(args...),
 		relevant: []*Item{},
 	}
 }
