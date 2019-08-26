@@ -78,9 +78,6 @@ func (m *MemoryCache) Set(args ...interface{}) (err error) {
 		ttl = args[2].(int)
 	}
 
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
 	var expiration time.Time
 	if ttl > 0 {
 		expiration = time.Now().Add(time.Duration(ttl) * time.Second)
@@ -92,6 +89,10 @@ func (m *MemoryCache) Set(args ...interface{}) (err error) {
 	case []byte:
 		dat = t
 	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	m.data[key] = memoryCacheEntry{
 		data:       dat,
 		expiration: expiration,
@@ -119,6 +120,10 @@ func (m *MemoryCache) Del(item interface{}) error {
 		}
 	}
 	return nil
+}
+
+func (m *MemoryCache) Dump() string {
+	return fmt.Sprintf("%+v", m.data)
 }
 
 // Resolve and factory of relevant cahce keys.

@@ -34,4 +34,5 @@ type Cache interface {
 	Set(args ...interface{}) error
 	Del(item interface{}) error
 	Close() error
+	Dump() string
 }

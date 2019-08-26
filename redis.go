@@ -81,6 +81,11 @@ func (r *RedisCache) Get(item interface{}) ([]byte, error) {
 
 }
 
+func (r *RedisCache) Dump() string {
+	keys, _ := r.conn.Keys("*").Result()
+	return fmt.Sprintf("%q", keys)
+}
+
 // Wrap of redis.SET/redis.SETEX
 // args is acceptable with following argument counts:
 //
