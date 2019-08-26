@@ -16,7 +16,7 @@ func (m memoryCacheEntry) Expired() bool {
 	if m.expiration.IsZero() {
 		return false
 	}
-	return m.expiration.After(time.Now())
+	return time.Now().After(m.expiration)
 }
 
 type MemoryCache struct {
@@ -46,7 +46,7 @@ func (m *MemoryCache) Get(item interface{}) ([]byte, error) {
 		return nil, fmt.Errorf("record doesn't exist for key: %s", key)
 	} else if entry.Expired() {
 		delete(m.data, key)
-		return nil, err
+		return nil, fmt.Errorf("record has been expired for key: %s", key)
 	}
 	_, data := decodeMeta(entry.data)
 	return data, nil
