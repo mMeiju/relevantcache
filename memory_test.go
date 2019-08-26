@@ -8,7 +8,7 @@ import (
 )
 
 func TestMemoryCacheGetCacheWithSimpleString(t *testing.T) {
-	c := rc.NewMemoryCahe()
+	c := rc.NewMemoryCache()
 	defer c.Close()
 
 	err := c.Set("foo", "bar", 0)
@@ -19,7 +19,7 @@ func TestMemoryCacheGetCacheWithSimpleString(t *testing.T) {
 }
 
 func TestMemoryCacheSetCacheWithPrimitiveData(t *testing.T) {
-	c := rc.NewMemoryCahe()
+	c := rc.NewMemoryCache()
 	defer c.Close()
 
 	err := c.Set("key", "value")
@@ -27,7 +27,7 @@ func TestMemoryCacheSetCacheWithPrimitiveData(t *testing.T) {
 }
 
 func TestMemoryCacheSetCacheWithPrimitiveDataIncludeTTL(t *testing.T) {
-	c := rc.NewMemoryCahe()
+	c := rc.NewMemoryCache()
 	defer c.Close()
 
 	err := c.Set("key", "value", 100)
@@ -35,7 +35,7 @@ func TestMemoryCacheSetCacheWithPrimitiveDataIncludeTTL(t *testing.T) {
 }
 
 func TestMemoryCacheSetCacheWithItem(t *testing.T) {
-	c := rc.NewMemoryCahe()
+	c := rc.NewMemoryCache()
 	defer c.Close()
 
 	item := rc.NewItem("child", 1).Value("value")
@@ -47,7 +47,7 @@ func TestMemoryCacheSetCacheWithItem(t *testing.T) {
 }
 
 func TestMemoryCacheDelCacheWithPrimitiveString(t *testing.T) {
-	c := rc.NewMemoryCahe()
+	c := rc.NewMemoryCache()
 	defer c.Close()
 
 	err := c.Set("lorem", "ipsum", 0)
@@ -60,7 +60,7 @@ func TestMemoryCacheDelCacheWithPrimitiveString(t *testing.T) {
 }
 
 func TestMemoryCacheFactoryRelevantKeys(t *testing.T) {
-	c := rc.NewMemoryCahe()
+	c := rc.NewMemoryCache()
 	defer c.Close()
 
 	err := c.Set("parent1", "parent", 0)
@@ -78,7 +78,7 @@ func TestMemoryCacheFactoryRelevantKeys(t *testing.T) {
 }
 
 func TestMemoryCacheDelCacheWithRelevantItemRecursively(t *testing.T) {
-	c := rc.NewMemoryCahe()
+	c := rc.NewMemoryCache()
 	defer c.Close()
 
 	err := c.Set("parent1", "parent", 0)

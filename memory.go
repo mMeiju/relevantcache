@@ -24,7 +24,7 @@ type MemoryCache struct {
 	mu   sync.Mutex
 }
 
-func NewMemoryCahe() *MemoryCache {
+func NewMemoryCache() *MemoryCache {
 	return &MemoryCache{
 		data: make(map[string]memoryCacheEntry),
 	}
