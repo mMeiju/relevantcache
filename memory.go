@@ -3,6 +3,7 @@ package relevantcache
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 	"sync"
@@ -24,12 +25,20 @@ func (m memoryCacheEntry) Expired() bool {
 type MemoryCache struct {
 	data map[string]memoryCacheEntry
 	mu   sync.Mutex
+	w    io.Writer
 }
 
-func NewMemoryCache() *MemoryCache {
-	return &MemoryCache{
+func NewMemoryCache(opts ...option) *MemoryCache {
+	m := &MemoryCache{
 		data: make(map[string]memoryCacheEntry),
 	}
+	for _, o := range opts {
+		switch o.name {
+		case optionNameDebugWriter:
+			m.w = o.value.(io.Writer)
+		}
+	}
+	return m
 }
 
 func (m *MemoryCache) Close() error {
@@ -70,6 +79,7 @@ func (m *MemoryCache) Set(args ...interface{}) (err error) {
 		key = item.cacheKey()
 		value = item.encode()
 		ttl = int(item.ttl)
+		debug(m.w, fmt.Sprintf("[SET] cahce key %s is relevant to %q\n", key, item.getRelevaneKeys()))
 	case 2:
 		key = args[0].(string)
 		value = args[1]
@@ -116,6 +126,8 @@ func (m *MemoryCache) Del(item interface{}) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	debug(m.w, fmt.Sprintf("[DEL] delete relevant caches %q\n", keys))
+
 	for _, k := range keys {
 		if _, ok := m.data[k]; ok {
 			delete(m.data, k)
@@ -161,6 +173,8 @@ func (m *MemoryCache) factoryRelevantKeys(key string) ([]string, error) {
 		}
 		relevantKeys = append(relevantKeys, rKeys...)
 	}
+
+	debug(m.w, fmt.Sprintf("[REL] %s is relevant to %q\n", key, relevantKeys))
 	return relevantKeys, nil
 }
 
@@ -175,7 +189,7 @@ func (m *MemoryCache) factoryRelevantKeysWithAsterisk(key string) ([]string, err
 	if err != nil {
 		return nil, fmt.Errorf("failed to compile regex on dealing asterisk sign: %s", err.Error())
 	}
-	keys := []string{}
+	relevantKeys := []string{}
 	for k, v := range m.data {
 		if !regex.MatchString(k) {
 			continue
@@ -184,9 +198,11 @@ func (m *MemoryCache) factoryRelevantKeysWithAsterisk(key string) ([]string, err
 			delete(m.data, k)
 			continue
 		}
-		keys = append(keys, k)
+		relevantKeys = append(relevantKeys, k)
 	}
-	return keys, nil
+	debug(m.w, fmt.Sprintf("[REL-ASTERISK] %s is relevant to %q\n", key, relevantKeys))
+
+	return relevantKeys, nil
 }
 
 var _ Cache = (*MemoryCache)(nil)

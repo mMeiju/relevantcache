@@ -3,6 +3,7 @@ package relevantcache
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 // Redis backend struct
 type RedisCache struct {
 	conn *redis.Client
+	w    io.Writer
 }
 
 // Create RedisCache pointer with some options
@@ -23,12 +25,15 @@ type RedisCache struct {
 // rc.WithSkipTLSVerify(bool): Skip TLS verification
 func NewRedisCache(endpoint string, opts ...option) (*RedisCache, error) {
 	var skipVerify bool
+	var w io.Writer
 	for _, o := range opts {
 		switch o.name {
 		case optionNameSkipTLSVerify:
 			skipVerify = o.value.(bool)
 			// case optionNameSplitBufferSize:
 			// 	splitChunkSize = o.value.(int64)
+		case optionNameDebugWriter:
+			w = o.value.(io.Writer)
 		}
 	}
 
@@ -57,6 +62,7 @@ func NewRedisCache(endpoint string, opts ...option) (*RedisCache, error) {
 	}
 	return &RedisCache{
 		conn: conn,
+		w:    w,
 	}, nil
 }
 
@@ -108,6 +114,7 @@ func (r *RedisCache) Set(args ...interface{}) (err error) {
 		key = item.cacheKey()
 		value = item.encode()
 		ttl = int(item.ttl)
+		debug(r.w, fmt.Sprintf("[SET] cahce key %s is relevant to %q\n", key, item.getRelevaneKeys()))
 	case 2:
 		key = args[0].(string)
 		value = args[1]
@@ -139,6 +146,7 @@ func (r *RedisCache) Del(item interface{}) error {
 	} else if len(keys) == 0 {
 		return nil
 	}
+	debug(r.w, fmt.Sprintf("[DEL] delete relevant caches %q\n", keys))
 
 	return r.conn.Del(keys...).Err()
 }
@@ -170,6 +178,7 @@ func (r *RedisCache) factoryRelevantKeys(key string) ([]string, error) {
 		}
 		relevantKeys = append(relevantKeys, rKeys...)
 	}
+	debug(r.w, fmt.Sprintf("[REL] %s is relevant to %q\n", key, relevantKeys))
 	return relevantKeys, nil
 }
 
@@ -187,6 +196,8 @@ func (r *RedisCache) factoryRelevantKeysWithAsterisk(key string) ([]string, erro
 		}
 		relevantKeys = append(relevantKeys, ks...)
 	}
+	debug(r.w, fmt.Sprintf("[REL-ASTERISK] %s is relevant to %q\n", key, relevantKeys))
+
 	return relevantKeys, nil
 }
 

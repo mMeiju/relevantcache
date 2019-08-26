@@ -15,6 +15,10 @@
 // and when we delete it, extract metadata, factory relevant keys recursively, and delete those.
 package relevantcache
 
+import (
+	"io"
+)
+
 const (
 	// Definetely TLS protocol name
 	// e.g. tls://[host]:[port] -> connect with TLS
@@ -35,4 +39,10 @@ type Cache interface {
 	Del(item interface{}) error
 	Close() error
 	Dump() string
+}
+
+func debug(w io.Writer, message string) {
+	if w != nil {
+		io.WriteString(w, message)
+	}
 }

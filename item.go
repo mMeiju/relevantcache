@@ -60,13 +60,21 @@ func (i *Item) cacheKey() string {
 	return i.key
 }
 
-// Generate and get metadata
-func (i *Item) encode() []byte {
+// List relevant cache keys
+func (i *Item) getRelevaneKeys() []string {
 	relevantKeys := make([]string, len(i.relevant))
 	for j, v := range i.relevant {
 		relevantKeys[j] = v.cacheKey()
 	}
-	return encodeMeta(strings.Join(relevantKeys, keyDelimiter), i.value)
+	return relevantKeys
+}
+
+// Generate and get metadata
+func (i *Item) encode() []byte {
+	return encodeMeta(
+		strings.Join(i.getRelevaneKeys(), keyDelimiter),
+		i.value,
+	)
 }
 
 // Codec: encode metadata and actual data to byte slice for storing
