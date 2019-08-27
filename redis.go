@@ -71,6 +71,11 @@ func (r *RedisCache) Close() error {
 	return r.conn.Close()
 }
 
+// Purge all caches
+func (r *RedisCache) Purge() error {
+	return r.conn.FlushDBAsync().Err()
+}
+
 // Wrap of redis.GET
 // item is acceptable either of string of *Item
 func (r *RedisCache) Get(item interface{}) ([]byte, error) {

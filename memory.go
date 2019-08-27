@@ -45,6 +45,13 @@ func (m *MemoryCache) Close() error {
 	return nil
 }
 
+func (m *MemoryCache) Purge() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.data = make(map[string]memoryCacheEntry)
+	return nil
+}
+
 func (m *MemoryCache) Get(item interface{}) ([]byte, error) {
 	key, err := getKey(item)
 	if err != nil {

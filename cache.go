@@ -39,6 +39,7 @@ type Cache interface {
 	Del(items ...interface{}) error
 	Close() error
 	Dump() string
+	Purge() error
 }
 
 func debug(w io.Writer, message string) {
