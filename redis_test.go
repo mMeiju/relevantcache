@@ -79,8 +79,7 @@ func TestRedisCacheFactoryRelevantKeys(t *testing.T) {
 	item := rc.NewItem("child", 10).Value("child").RelevantTo("parent", 1)
 	assert.NoError(t, c.Set(item))
 
-	keys, err := c.FactoryRelevantKeys("child_10")
-	assert.NoError(t, err)
+	keys := c.FactoryRelevantKeys("child_10")
 	assert.Len(t, keys, 2)
 	assert.Equal(t, keys[0], "child_10")
 	assert.Equal(t, keys[1], "parent_1")
@@ -120,8 +119,7 @@ func TestRedisCacheFactoryRelevantKeysWithAsterisk(t *testing.T) {
 	item := rc.NewItem("child", 10).Value("child").RelevantTo("asterisk*")
 	assert.NoError(t, c.Set(item))
 
-	keys, err := c.FactoryRelevantKeys("child_10")
-	assert.NoError(t, err)
+	keys := c.FactoryRelevantKeys("child_10")
 	assert.Len(t, keys, 3)
 	assert.Contains(t, keys, "child_10")
 	assert.Contains(t, keys, "asterisk_1")

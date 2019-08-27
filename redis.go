@@ -140,19 +140,19 @@ func (r *RedisCache) Del(items ...interface{}) error {
 	for _, v := range items {
 		key, err := getKey(v)
 		if err != nil {
+			debug(r.w, fmt.Sprintf("[DEL] invalid keys:%v,  %s\n", v, err.Error()))
 			continue
 		}
+		debug(r.w, fmt.Sprintf("[DEL] key is: %s\n", key))
 
-		keys, err := r.factoryRelevantKeys(key)
-		if err != nil {
-			continue
-		}
+		keys := r.factoryRelevantKeys(key)
+		debug(r.w, fmt.Sprintf("[DEL] factory keys are: %q\n", keys))
 
 		deleteKeys = append(deleteKeys, keys...)
 	}
 
 	if len(deleteKeys) == 0 {
-		debug(r.w, "[DEL] delete relevant caches are empty. skipped")
+		debug(r.w, "[DEL] delete relevant caches are empty. skipped\n")
 		return nil
 	}
 
@@ -163,51 +163,47 @@ func (r *RedisCache) Del(items ...interface{}) error {
 // Resolve and factory of relevant cahce keys.
 // To resolve relevant cahe keys, we access to redis eatch time.
 // It might be affect to performance, so we recommend to nesting cahe at least less than 4 or 5.
-func (r *RedisCache) factoryRelevantKeys(key string) ([]string, error) {
+func (r *RedisCache) factoryRelevantKeys(key string) []string {
 	// When key contains asterisk sign, whe should list as KEYS command to match against keys
 	if strings.Contains(key, "*") {
 		return r.factoryRelevantKeysWithAsterisk(key)
 	}
 
+	relevantKeys := []string{}
 	b, err := r.conn.Get(key).Bytes()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get record for delete. Key is %v, %s", key, err.Error())
+		debug(r.w, fmt.Sprintf("failed to get record for delete. Key is %v, %s\n", key, err.Error()))
+		return relevantKeys
 	}
 
-	relevantKeys := []string{key}
+	relevantKeys = append(relevantKeys, key)
 	keys, _ := decodeMeta(b)
 	if keys == nil {
-		return relevantKeys, nil
+		return relevantKeys
 	}
 	relevant := bytes.Split(keys, []byte(keyDelimiter))
 	for _, v := range relevant {
-		rKeys, err := r.factoryRelevantKeys(string(v))
-		if err != nil {
-			return relevantKeys, err
-		}
+		rKeys := r.factoryRelevantKeys(string(v))
 		relevantKeys = append(relevantKeys, rKeys...)
 	}
 	debug(r.w, fmt.Sprintf("[REL] %s is relevant to %q\n", key, relevantKeys))
-	return relevantKeys, nil
+	return relevantKeys
 }
 
 // Dealing asterisk sign
-func (r *RedisCache) factoryRelevantKeysWithAsterisk(key string) ([]string, error) {
+func (r *RedisCache) factoryRelevantKeysWithAsterisk(key string) []string {
+	relevantKeys := []string{}
 	keys, err := r.conn.Keys(key).Result()
 	if err != nil {
-		return nil, fmt.Errorf("failed to list keys for %s, %s", key, err.Error())
+		debug(r.w, fmt.Sprintf("failed to list keys for %s, %s\n", key, err.Error()))
+		return relevantKeys
 	}
-	relevantKeys := []string{}
 	for _, k := range keys {
-		ks, err := r.factoryRelevantKeys(k)
-		if err != nil {
-			return nil, fmt.Errorf("failed to list keys recursively for %s, %s", k, err.Error())
-		}
+		ks := r.factoryRelevantKeys(k)
 		relevantKeys = append(relevantKeys, ks...)
 	}
 	debug(r.w, fmt.Sprintf("[REL-ASTERISK] %s is relevant to %q\n", key, relevantKeys))
-
-	return relevantKeys, nil
+	return relevantKeys
 }
 
 var _ Cache = (*RedisCache)(nil)

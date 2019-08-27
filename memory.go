@@ -118,19 +118,19 @@ func (m *MemoryCache) Del(items ...interface{}) error {
 	for _, v := range items {
 		key, err := getKey(v)
 		if err != nil {
+			debug(m.w, fmt.Sprintf("[DEL] invalid keys:%v,  %s\n", v, err.Error()))
 			continue
 		}
+		debug(m.w, fmt.Sprintf("[DEL] key is: %s\n", key))
 
-		keys, err := m.factoryRelevantKeys(key)
-		if err != nil {
-			continue
-		}
+		keys := m.factoryRelevantKeys(key)
+		debug(m.w, fmt.Sprintf("[DEL] factory keys are: %q\n", keys))
 
 		deleteKeys = append(deleteKeys, keys...)
 	}
 
 	if len(deleteKeys) == 0 {
-		debug(m.w, "[DEL] delete relevant caches are empty. skipped")
+		debug(m.w, "[DEL] delete relevant caches are empty. skipped\n")
 		return nil
 	}
 
@@ -154,7 +154,7 @@ func (m *MemoryCache) Dump() string {
 // Resolve and factory of relevant cahce keys.
 // To resolve relevant cahe keys, we access to redis eatch time.
 // It might be affect to performance, so we recommend to nesting cahe at least less than 4 or 5.
-func (m *MemoryCache) factoryRelevantKeys(key string) ([]string, error) {
+func (m *MemoryCache) factoryRelevantKeys(key string) []string {
 	// When key contains asterisk sign, whe should list as KEYS command to match against keys
 	if strings.Contains(key, "*") {
 		return m.factoryRelevantKeysWithAsterisk(key)
@@ -177,28 +177,25 @@ func (m *MemoryCache) factoryRelevantKeys(key string) ([]string, error) {
 	}(key)
 
 	if record == nil {
-		return relevantKeys, nil
+		return relevantKeys
 	}
 
 	keys, _ := decodeMeta(record)
 	if keys == nil {
-		return relevantKeys, nil
+		return relevantKeys
 	}
 	relevant := bytes.Split(keys, []byte(keyDelimiter))
 	for _, v := range relevant {
-		rKeys, err := m.factoryRelevantKeys(string(v))
-		if err != nil {
-			return relevantKeys, err
-		}
+		rKeys := m.factoryRelevantKeys(string(v))
 		relevantKeys = append(relevantKeys, rKeys...)
 	}
 
 	debug(m.w, fmt.Sprintf("[REL] %s is relevant to %q\n", key, relevantKeys))
-	return relevantKeys, nil
+	return relevantKeys
 }
 
 // Dealing asterisk sign
-func (m *MemoryCache) factoryRelevantKeysWithAsterisk(key string) ([]string, error) {
+func (m *MemoryCache) factoryRelevantKeysWithAsterisk(key string) []string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -206,7 +203,7 @@ func (m *MemoryCache) factoryRelevantKeysWithAsterisk(key string) ([]string, err
 		strings.ReplaceAll(key, "*", ".*"),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to compile regex on dealing asterisk sign: %s", err.Error())
+		debug(m.w, fmt.Sprintf("failed to compile regex on dealing asterisk sign: %s\n", err.Error()))
 	}
 	relevantKeys := []string{}
 	for k, v := range m.data {
@@ -221,7 +218,7 @@ func (m *MemoryCache) factoryRelevantKeysWithAsterisk(key string) ([]string, err
 	}
 	debug(m.w, fmt.Sprintf("[REL-ASTERISK] %s is relevant to %q\n", key, relevantKeys))
 
-	return relevantKeys, nil
+	return relevantKeys
 }
 
 var _ Cache = (*MemoryCache)(nil)
