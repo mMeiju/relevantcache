@@ -118,19 +118,19 @@ func (m *MemoryCache) Del(items ...interface{}) error {
 	for _, v := range items {
 		key, err := getKey(v)
 		if err != nil {
-			return err
+			return continue
 		}
 
 		keys, err := m.factoryRelevantKeys(key)
 		if err != nil {
-			return err
+			continue
 		}
 
 		deleteKeys = append(deleteKeys, keys...)
 	}
 
 	if len(deleteKeys) == 0 {
-		debug(m.w, "[DEL] delete relevant caches is empty. skipped")
+		debug(m.w, "[DEL] delete relevant caches are empty. skipped")
 		return nil
 	}
 

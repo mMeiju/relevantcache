@@ -140,20 +140,19 @@ func (r *RedisCache) Del(items ...interface{}) error {
 	for _, v := range items {
 		key, err := getKey(v)
 		if err != nil {
-			return err
+			continue
 		}
 
 		keys, err := r.factoryRelevantKeys(key)
 		if err != nil {
-			return err
-		} else if len(keys) == 0 {
 			continue
 		}
+
 		deleteKeys = append(deleteKeys, keys...)
 	}
 
 	if len(deleteKeys) == 0 {
-		debug(r.w, "[DEL] delete relevant caches is empty. skipped")
+		debug(r.w, "[DEL] delete relevant caches are empty. skipped")
 		return nil
 	}
 
