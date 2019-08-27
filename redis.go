@@ -183,7 +183,7 @@ func (r *RedisCache) factoryRelevantKeys(key string) ([]string, error) {
 	for _, v := range relevant {
 		rKeys, err := r.factoryRelevantKeys(string(v))
 		if err != nil {
-			return nil, err
+			return relevantKeys, err
 		}
 		relevantKeys = append(relevantKeys, rKeys...)
 	}

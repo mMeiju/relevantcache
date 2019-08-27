@@ -160,6 +160,7 @@ func (m *MemoryCache) factoryRelevantKeys(key string) ([]string, error) {
 		return m.factoryRelevantKeysWithAsterisk(key)
 	}
 
+	relevantKeys := []string{key}
 	record := func(k string) []byte {
 		m.mu.Lock()
 		defer m.mu.Unlock()
@@ -176,10 +177,9 @@ func (m *MemoryCache) factoryRelevantKeys(key string) ([]string, error) {
 	}(key)
 
 	if record == nil {
-		return []string{}, nil
+		return relevantKeys, nil
 	}
 
-	relevantKeys := []string{key}
 	keys, _ := decodeMeta(record)
 	if keys == nil {
 		return relevantKeys, nil
@@ -188,7 +188,7 @@ func (m *MemoryCache) factoryRelevantKeys(key string) ([]string, error) {
 	for _, v := range relevant {
 		rKeys, err := m.factoryRelevantKeys(string(v))
 		if err != nil {
-			return nil, err
+			return relevantKeys, err
 		}
 		relevantKeys = append(relevantKeys, rKeys...)
 	}
