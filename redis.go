@@ -147,12 +147,17 @@ func (r *RedisCache) Del(items ...interface{}) error {
 		if err != nil {
 			return err
 		} else if len(keys) == 0 {
-			return nil
+			continue
 		}
-		debug(r.w, fmt.Sprintf("[DEL] delete relevant caches %q\n", keys))
 		deleteKeys = append(deleteKeys, keys...)
 	}
 
+	if len(deleteKeys) == 0 {
+		debug(r.w, "[DEL] delete relevant caches is empty. skipped")
+		return nil
+	}
+
+	debug(r.w, fmt.Sprintf("[DEL] delete relevant caches %q\n", deleteKeys))
 	return r.conn.Del(deleteKeys...).Err()
 }
 
