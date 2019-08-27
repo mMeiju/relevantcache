@@ -130,11 +130,11 @@ func (m *MemoryCache) Del(items ...interface{}) error {
 	}
 
 	if len(deleteKeys) == 0 {
-		debug(r.w, "[DEL] delete relevant caches is empty. skipped")
+		debug(m.w, "[DEL] delete relevant caches is empty. skipped")
 		return nil
 	}
 
-	debug(r.w, fmt.Sprintf("[DEL] delete relevant caches %q\n", deleteKeys))
+	debug(m.w, fmt.Sprintf("[DEL] delete relevant caches %q\n", deleteKeys))
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
