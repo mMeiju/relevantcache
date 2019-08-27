@@ -134,21 +134,26 @@ func (r *RedisCache) Set(args ...interface{}) (err error) {
 
 // Wrap of redis.DEL
 // item is acceptable either of string of *Item
-func (r *RedisCache) Del(item interface{}) error {
-	key, err := getKey(item)
-	if err != nil {
-		return err
+func (r *RedisCache) Del(items ...interface{}) error {
+	deleteKeys := []string{}
+
+	for _, v := range items {
+		key, err := getKey(v)
+		if err != nil {
+			return err
+		}
+
+		keys, err := r.factoryRelevantKeys(key)
+		if err != nil {
+			return err
+		} else if len(keys) == 0 {
+			return nil
+		}
+		debug(r.w, fmt.Sprintf("[DEL] delete relevant caches %q\n", keys))
+		deleteKeys = append(deleteKeys, keys...)
 	}
 
-	keys, err := r.factoryRelevantKeys(key)
-	if err != nil {
-		return err
-	} else if len(keys) == 0 {
-		return nil
-	}
-	debug(r.w, fmt.Sprintf("[DEL] delete relevant caches %q\n", keys))
-
-	return r.conn.Del(keys...).Err()
+	return r.conn.Del(deleteKeys...).Err()
 }
 
 // Resolve and factory of relevant cahce keys.

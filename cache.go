@@ -36,7 +36,7 @@ var (
 type Cache interface {
 	Get(item interface{}) ([]byte, error)
 	Set(args ...interface{}) error
-	Del(item interface{}) error
+	Del(items ...interface{}) error
 	Close() error
 	Dump() string
 }

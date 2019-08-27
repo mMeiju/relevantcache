@@ -112,23 +112,28 @@ func (m *MemoryCache) Set(args ...interface{}) (err error) {
 	return nil
 }
 
-func (m *MemoryCache) Del(item interface{}) error {
-	key, err := getKey(item)
-	if err != nil {
-		return err
-	}
+func (m *MemoryCache) Del(items ...interface{}) error {
+	deleteKeys := []string{}
 
-	keys, err := m.factoryRelevantKeys(key)
-	if err != nil {
-		return err
+	for _, v := range items {
+		key, err := getKey(v)
+		if err != nil {
+			return err
+		}
+
+		keys, err := m.factoryRelevantKeys(key)
+		if err != nil {
+			return err
+		}
+
+		debug(m.w, fmt.Sprintf("[DEL] delete relevant caches %q\n", keys))
+		deleteKeys = append(deleteKeys, keys...)
 	}
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	debug(m.w, fmt.Sprintf("[DEL] delete relevant caches %q\n", keys))
-
-	for _, k := range keys {
+	for _, k := range deleteKeys {
 		if _, ok := m.data[k]; ok {
 			delete(m.data, k)
 		}
@@ -148,20 +153,28 @@ func (m *MemoryCache) factoryRelevantKeys(key string) ([]string, error) {
 	if strings.Contains(key, "*") {
 		return m.factoryRelevantKeysWithAsterisk(key)
 	}
-	m.mu.Lock()
-	b, ok := m.data[key]
-	if !ok {
-		m.mu.Unlock()
-		return nil, fmt.Errorf("failed to get record for delete. Key is %s", key)
-	} else if b.Expired() {
-		m.mu.Unlock()
-		delete(m.data, key)
-		return nil, fmt.Errorf("failed to get record for delete. Key is %s", key)
+
+	record := func(k string) []byte {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+
+		b, ok := m.data[k]
+		if !ok {
+			return nil
+		}
+		if b.Expired() {
+			delete(m.data, k)
+			return nil
+		}
+		return b.data
+	}(key)
+
+	if record == nil {
+		return []string{}, nil
 	}
-	m.mu.Unlock()
 
 	relevantKeys := []string{key}
-	keys, _ := decodeMeta(b.data)
+	keys, _ := decodeMeta(record)
 	if keys == nil {
 		return relevantKeys, nil
 	}
