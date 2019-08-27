@@ -118,7 +118,7 @@ func (m *MemoryCache) Del(items ...interface{}) error {
 	for _, v := range items {
 		key, err := getKey(v)
 		if err != nil {
-			return continue
+			continue
 		}
 
 		keys, err := m.factoryRelevantKeys(key)
