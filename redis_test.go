@@ -47,10 +47,10 @@ func TestRedisCacheSetCacheWithItem(t *testing.T) {
 	c, _ := rc.NewRedisCache(redisUrl)
 	defer c.Close()
 
-	item := rc.NewItem("child", 1).Value("value")
+	item := rc.NewItem("child", 1).Value("value").Ttl(10)
 	err := c.Set(item)
 	assert.NoError(t, err)
-	v, err := c.Get("child1")
+	v, err := c.Get("child_1")
 	assert.NoError(t, err)
 	assert.Equal(t, []byte("value"), v)
 }
@@ -124,4 +124,12 @@ func TestRedisCacheFactoryRelevantKeysWithAsterisk(t *testing.T) {
 	assert.Contains(t, keys, "child_10")
 	assert.Contains(t, keys, "asterisk_1")
 	assert.Contains(t, keys, "asterisk_2")
+}
+
+func TestRedisCacheIncrement(t *testing.T) {
+	c, _ := rc.NewRedisCache(redisUrl)
+	defer c.Close()
+
+	err := c.Increment("incr")
+	assert.NoError(t, err)
 }
