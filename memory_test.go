@@ -116,3 +116,11 @@ func TestMemoryCacheFactoryRelevantKeysWithAsterisk(t *testing.T) {
 	assert.Contains(t, keys, "asterisk_1")
 	assert.Contains(t, keys, "asterisk_2")
 }
+
+func TestMemoryCacheIncrement(t *testing.T) {
+	c := rc.NewMemoryCache()
+	defer c.Close()
+
+	err := c.Increment("incr")
+	assert.NoError(t, err)
+}

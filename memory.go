@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"encoding/json"
 )
 
 type memoryCacheEntry struct {
@@ -49,6 +51,34 @@ func (m *MemoryCache) Purge() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.data = make(map[string]memoryCacheEntry)
+	return nil
+}
+
+func (m *MemoryCache) Increment(key string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if v, ok := m.data[key]; !ok {
+		b, err := json.Marshal(1)
+		if err != nil {
+			return err
+		}
+		m.data[key] = memoryCacheEntry{
+			data:       b,
+			expiration: time.Time{},
+		}
+	} else {
+		var i int64
+		if err := json.Unmarshal(v.data, &i); err != nil {
+			return err
+		}
+		i++
+		b, err := json.Marshal(i)
+		if err != nil {
+			return err
+		}
+		v.data = b
+		m.data[key] = v
+	}
 	return nil
 }
 

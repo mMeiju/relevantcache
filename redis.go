@@ -78,6 +78,10 @@ func (r *RedisCache) Purge() error {
 	return r.conn.FlushDBAsync().Err()
 }
 
+func (r *RedisCache) Increment(key string) error {
+	return r.conn.Incr(key).Err()
+}
+
 // Wrap of redis.GET
 // item is acceptable either of string of *Item
 func (r *RedisCache) Get(item interface{}) ([]byte, error) {
