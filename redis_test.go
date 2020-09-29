@@ -50,7 +50,7 @@ func TestRedisCacheSetCacheWithItem(t *testing.T) {
 	item := rc.NewItem("child", 1).Value("value")
 	err := c.Set(item)
 	assert.NoError(t, err)
-	v, err := c.Get("child1")
+	v, err := c.Get("child_1")
 	assert.NoError(t, err)
 	assert.Equal(t, []byte("value"), v)
 }

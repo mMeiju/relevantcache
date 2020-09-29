@@ -13,6 +13,8 @@ import (
 	"github.com/go-redis/redis"
 )
 
+var RedisNil = redis.Nil
+
 // Redis backend struct
 type RedisCache struct {
 	conn *redis.Client
