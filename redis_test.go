@@ -133,3 +133,20 @@ func TestRedisCacheIncrement(t *testing.T) {
 	err := c.Increment("incr")
 	assert.NoError(t, err)
 }
+
+func TestRedisCacheMGet(t *testing.T) {
+	c, _ := rc.NewRedisCache(redisUrl)
+	defer c.Close()
+
+	assert.NoError(t, c.Set("key1", "val1"))
+	assert.NoError(t, c.Set("key3", "val3"))
+	defer func() {
+		c.Del("key1", "key3")
+	}()
+	values, err := c.MGet("key1", "key2", "key3")
+	assert.NoError(t, err)
+	assert.Len(t, values, 3)
+	assert.Equal(t, []byte("val1"), values[0].([]byte))
+	assert.Nil(t, values[1])
+	assert.Equal(t, []byte("val3"), values[2].([]byte))
+}
