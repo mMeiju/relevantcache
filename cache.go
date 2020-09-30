@@ -41,7 +41,7 @@ type Cache interface {
 	Close() error
 	Dump() string
 	Purge() error
-	MGet(keys ...interface{}) ([]interface{}, error)
+	MGet(keys ...interface{}) ([][]byte, error)
 }
 
 func debug(w io.Writer, message string) {

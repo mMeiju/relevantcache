@@ -217,7 +217,7 @@ func (r *RedisCache) factoryRelevantKeysWithAsterisk(key string) []string {
 	return relevantKeys
 }
 
-func (r *RedisCache) MGet(keys ...interface{}) ([]interface{}, error) {
+func (r *RedisCache) MGet(keys ...interface{}) ([][]byte, error) {
 	cacheKeys := make([]string, len(keys))
 	for i, k := range keys {
 		key, err := getKey(k)
@@ -230,7 +230,7 @@ func (r *RedisCache) MGet(keys ...interface{}) ([]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	ret := make([]interface{}, len(cacheKeys))
+	ret := make([][]byte, len(cacheKeys))
 	for i, v := range result {
 		if v == nil {
 			ret[i] = nil

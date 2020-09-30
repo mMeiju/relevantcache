@@ -146,7 +146,7 @@ func TestRedisCacheMGet(t *testing.T) {
 	values, err := c.MGet("key1", "key2", "key3")
 	assert.NoError(t, err)
 	assert.Len(t, values, 3)
-	assert.Equal(t, []byte("val1"), values[0].([]byte))
+	assert.Equal(t, []byte("val1"), values[0])
 	assert.Nil(t, values[1])
-	assert.Equal(t, []byte("val3"), values[2].([]byte))
+	assert.Equal(t, []byte("val3"), values[2])
 }
