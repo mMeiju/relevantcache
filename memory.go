@@ -258,4 +258,30 @@ func (m *MemoryCache) factoryRelevantKeysWithAsterisk(key string) []string {
 	return relevantKeys
 }
 
+func (m *MemoryCache) MGet(keys ...interface{}) ([]interface{}, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	ret := make([]interface{}, len(keys))
+
+	for i, k := range keys {
+		key, err := getKey(k)
+		if err != nil {
+			return nil, err
+		}
+		entry, ok := m.data[key]
+		var v interface{}
+		if !ok {
+			v = nil
+		} else if entry.Expired() {
+			v = nil
+			delete(m.data, key)
+		}
+		_, data := decodeMeta(entry.data)
+		v = data
+		ret[i] = v
+	}
+	return ret, nil
+}
+
 var _ Cache = (*MemoryCache)(nil)
