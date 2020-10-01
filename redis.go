@@ -168,7 +168,7 @@ func (r *RedisCache) Del(items ...interface{}) error {
 	}
 
 	debug(r.w, fmt.Sprintf("[DEL] delete relevant caches %q\n", deleteKeys))
-	return r.conn.Del(deleteKeys...).Err()
+	return r.conn.Unlink(deleteKeys...).Err()
 }
 
 // Resolve and factory of relevant cahce keys.
