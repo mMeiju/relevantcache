@@ -146,29 +146,47 @@ func (r *RedisCache) Set(args ...interface{}) (err error) {
 // Wrap of redis.DEL
 // item is acceptable either of string of *Item
 func (r *RedisCache) Del(items ...interface{}) error {
-	deleteKeys := []string{}
-
-	for _, v := range items {
-		key, err := getKey(v)
-		if err != nil {
-			debug(r.w, fmt.Sprintf("[DEL] invalid keys:%v,  %s\n", v, err.Error()))
-			continue
-		}
-		debug(r.w, fmt.Sprintf("[DEL] key is: %s\n", key))
-
-		keys := r.factoryRelevantKeys(key)
-		debug(r.w, fmt.Sprintf("[DEL] factory keys are: %q\n", keys))
-
-		deleteKeys = append(deleteKeys, keys...)
-	}
-
-	if len(deleteKeys) == 0 {
+	keys := r.factoryDeleteKeys("DEL", items...)
+	if len(keys) == 0 {
 		debug(r.w, "[DEL] delete relevant caches are empty. skipped\n")
 		return nil
 	}
 
-	debug(r.w, fmt.Sprintf("[DEL] delete relevant caches %q\n", deleteKeys))
-	return r.conn.Unlink(deleteKeys...).Err()
+	debug(r.w, fmt.Sprintf("[DEL] delete relevant caches %q\n", keys))
+	return r.conn.Del(keys...).Err()
+}
+
+// Wrap of redis.UNLINK, note that ensure your redis engine is later than v4
+// item is acceptable either of string of *Item
+func (r *RedisCache) Unlink(items ...interface{}) error {
+	keys := r.factoryDeleteKeys("UNLINK", items...)
+	if len(keys) == 0 {
+		debug(r.w, "[UNLINK] delete relevant caches are empty. skipped\n")
+		return nil
+	}
+
+	debug(r.w, fmt.Sprintf("[UNLINK] delete relevant caches %q\n", keys))
+	return r.conn.Unlink(keys...).Err()
+}
+
+func (r *RedisCache) factoryDeleteKeys(method string, keys ...interface{}) []string {
+	deleteKeys := []string{}
+
+	for _, v := range keys {
+		key, err := getKey(v)
+		if err != nil {
+			debug(r.w, fmt.Sprintf("[%s] invalid keys:%v,  %s\n", method, v, err.Error()))
+			continue
+		}
+		debug(r.w, fmt.Sprintf("[%s] key is: %s\n", method, key))
+
+		keys := r.factoryRelevantKeys(key)
+		debug(r.w, fmt.Sprintf("[%s] factory keys are: %q\n", method, keys))
+
+		deleteKeys = append(deleteKeys, keys...)
+	}
+
+	return deleteKeys
 }
 
 // Resolve and factory of relevant cahce keys.

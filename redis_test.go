@@ -68,6 +68,19 @@ func TestRedisCacheDelCacheWithPrimitiveString(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestRedisCacheUnlinkCacheWithPrimitiveString(t *testing.T) {
+	c, _ := rc.NewRedisCache(redisUrl)
+	defer c.Close()
+
+	err := c.Conn().Set("lorem", "ipsum", 0).Err()
+	assert.NoError(t, err)
+	err = c.Unlink("lorem")
+	assert.NoError(t, err)
+
+	err = c.Conn().Get("lorem").Err()
+	assert.Error(t, err)
+}
+
 func TestRedisCacheFactoryRelevantKeys(t *testing.T) {
 	c, _ := rc.NewRedisCache(redisUrl)
 	defer c.Close()
@@ -100,6 +113,27 @@ func TestRedisCacheDelCacheWithRelevantItemRecursively(t *testing.T) {
 
 	// Delete and ensure deleted relevant key
 	assert.NoError(t, c.Del("ancestor_100"))
+	err = c.Conn().Get("parent_1").Err()
+	assert.Error(t, err)
+	err = c.Conn().Get("child_10").Err()
+	assert.Error(t, err)
+}
+
+func TestRedisCacheUnlinkCacheWithRelevantItemRecursively(t *testing.T) {
+	c, _ := rc.NewRedisCache(redisUrl)
+	defer c.Close()
+
+	err := c.Conn().Set("parent_1", "parent", 0).Err()
+	assert.NoError(t, err)
+
+	// Store with relevant key
+	item := rc.NewItem("child", 10).Value("child").RelevantTo("parent", 1)
+	assert.NoError(t, c.Set(item))
+	item = rc.NewItem("ancestor", 100).Value("ancestor").RelevantTo("child", 10)
+	assert.NoError(t, c.Set(item))
+
+	// Delete and ensure deleted relevant key
+	assert.NoError(t, c.Unlink("ancestor_100"))
 	err = c.Conn().Get("parent_1").Err()
 	assert.Error(t, err)
 	err = c.Conn().Get("child_10").Err()

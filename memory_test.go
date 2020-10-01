@@ -59,6 +59,19 @@ func TestMemoryCacheDelCacheWithPrimitiveString(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestMemoryCacheUnlinkCacheWithPrimitiveString(t *testing.T) {
+	c := rc.NewMemoryCache()
+	defer c.Close()
+
+	err := c.Set("lorem", "ipsum", 0)
+	assert.NoError(t, err)
+	err = c.Unlink("lorem")
+	assert.NoError(t, err)
+
+	_, err = c.Get("lorem")
+	assert.Error(t, err)
+}
+
 func TestMemoryCacheFactoryRelevantKeys(t *testing.T) {
 	c := rc.NewMemoryCache()
 	defer c.Close()
@@ -91,6 +104,27 @@ func TestMemoryCacheDelCacheWithRelevantItemRecursively(t *testing.T) {
 
 	// Delete and ensure deleted relevant key
 	assert.NoError(t, c.Del("ancestor_100"))
+	_, err = c.Get("parent_1")
+	assert.Error(t, err)
+	_, err = c.Get("child_10")
+	assert.Error(t, err)
+}
+
+func TestMemoryCacheUnlinkCacheWithRelevantItemRecursively(t *testing.T) {
+	c := rc.NewMemoryCache()
+	defer c.Close()
+
+	err := c.Set("parent_1", "parent", 0)
+	assert.NoError(t, err)
+
+	// Store with relevant key
+	item := rc.NewItem("child", 10).Value("child").RelevantTo("parent", 1)
+	assert.NoError(t, c.Set(item))
+	item = rc.NewItem("ancestor", 100).Value("ancestor").RelevantTo("child", 10)
+	assert.NoError(t, c.Set(item))
+
+	// Delete and ensure deleted relevant key
+	assert.NoError(t, c.Unlink("ancestor_100"))
 	_, err = c.Get("parent_1")
 	assert.Error(t, err)
 	_, err = c.Get("child_10")

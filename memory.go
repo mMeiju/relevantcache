@@ -184,6 +184,11 @@ func (m *MemoryCache) Del(items ...interface{}) error {
 	return nil
 }
 
+func (m *MemoryCache) Unlink(keys ...interface{}) error {
+	// on memory cache, unlink behaves the same as Del.
+	return m.Del(keys...)
+}
+
 func (m *MemoryCache) Dump() string {
 	return fmt.Sprintf("%+v", m.data)
 }
