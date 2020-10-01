@@ -37,6 +37,7 @@ type Cache interface {
 	Get(item interface{}) ([]byte, error)
 	Set(args ...interface{}) error
 	Del(items ...interface{}) error
+	Unlink(items ...interface{}) error
 	Increment(key string) error
 	Close() error
 	Dump() string
