@@ -43,6 +43,9 @@ type Cache interface {
 	Dump() string
 	Purge() error
 	MGet(keys ...interface{}) ([][]byte, error)
+	HSet(key interface{}, field string, value interface{}) error
+	HLen(key interface{}) (int64, error)
+	HGet(key interface{}, field string) ([]byte, error)
 }
 
 func debug(w io.Writer, message string) {

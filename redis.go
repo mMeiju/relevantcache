@@ -262,4 +262,40 @@ func (r *RedisCache) MGet(keys ...interface{}) ([][]byte, error) {
 	return ret, nil
 }
 
+func (r *RedisCache) HSet(key interface{}, field string, value interface{}) error {
+	k, err := getKey(key)
+	if err != nil {
+		return err
+	}
+	if err := r.conn.HSet(k, field, value).Err(); err != nil {
+		fmt.Println(err)
+		return err
+	}
+	return nil
+}
+
+func (r *RedisCache) HLen(key interface{}) (int64, error) {
+	k, err := getKey(key)
+	if err != nil {
+		return 0, err
+	}
+	size, err := r.conn.HLen(k).Result()
+	if err != nil {
+		return 0, err
+	}
+	return size, nil
+}
+
+func (r *RedisCache) HGet(key interface{}, field string) ([]byte, error) {
+	k, err := getKey(key)
+	if err != nil {
+		return nil, err
+	}
+	v, err := r.conn.HGet(k, field).Bytes()
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
 var _ Cache = (*RedisCache)(nil)
