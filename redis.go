@@ -21,6 +21,10 @@ type RedisCache struct {
 	w    io.Writer
 }
 
+func (r *RedisCache) Redis() *redis.Client {
+	return r.conn
+}
+
 // Create RedisCache pointer with some options
 // Currently enabled options are:
 //

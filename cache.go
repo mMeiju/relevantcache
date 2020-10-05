@@ -17,6 +17,8 @@ package relevantcache
 
 import (
 	"io"
+
+	"github.com/go-redis/redis"
 )
 
 const (
@@ -46,6 +48,7 @@ type Cache interface {
 	HSet(key interface{}, field string, value interface{}) error
 	HLen(key interface{}) (int64, error)
 	HGet(key interface{}, field string) ([]byte, error)
+	Redis() *redis.Client // should return *redis.Client if you are using *RedisCache otherwise nil
 }
 
 func debug(w io.Writer, message string) {

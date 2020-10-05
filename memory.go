@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"encoding/json"
+
+	"github.com/go-redis/redis"
 )
 
 type memoryCacheEntry struct {
@@ -28,6 +30,10 @@ type MemoryCache struct {
 	data map[string]memoryCacheEntry
 	mu   sync.Mutex
 	w    io.Writer
+}
+
+func (m *MemoryCache) Redis() *redis.Client {
+	return nil
 }
 
 func NewMemoryCache(opts ...option) *MemoryCache {
