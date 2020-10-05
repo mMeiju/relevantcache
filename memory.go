@@ -289,4 +289,91 @@ func (m *MemoryCache) MGet(keys ...interface{}) ([][]byte, error) {
 	return ret, nil
 }
 
+func (m *MemoryCache) HSet(key interface{}, field string, value interface{}) error {
+	k, err := getKey(key)
+	if err != nil {
+		return err
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	var d map[string]interface{}
+	if entry, ok := m.data[k]; ok {
+		err := json.Unmarshal(entry.data, &d)
+		if err != nil {
+			return err
+		}
+		d[field] = value
+		entry.data, err = json.Marshal(d)
+		if err != nil {
+			return err
+		}
+		m.data[k] = entry
+	} else {
+		d = map[string]interface{}{
+			field: value,
+		}
+		buf, err := json.Marshal(d)
+		if err != nil {
+			return err
+		}
+		m.data[k] = memoryCacheEntry{
+			data:       buf,
+			expiration: time.Time{},
+		}
+	}
+	return nil
+}
+
+func (m *MemoryCache) HLen(key interface{}) (int64, error) {
+	k, err := getKey(key)
+	if err != nil {
+		return 0, err
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if entry, ok := m.data[k]; ok {
+		var d map[string]interface{}
+		err := json.Unmarshal(entry.data, &d)
+		if err != nil {
+			return 0, err
+		}
+		return int64(len(d)), nil
+	}
+	return 0, nil
+}
+
+func (m *MemoryCache) HGet(key interface{}, field string) ([]byte, error) {
+	k, err := getKey(key)
+	if err != nil {
+		return nil, err
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if entry, ok := m.data[k]; ok {
+		var d map[string]interface{}
+		err := json.Unmarshal(entry.data, &d)
+		if err != nil {
+			return nil, err
+		}
+		if v, ok := d[field]; ok {
+			switch t := v.(type) {
+			case string:
+				return []byte(t), nil
+			case []byte:
+				return t, nil
+			default:
+				return json.Marshal(v)
+			}
+		}
+		return nil, RedisNil
+	}
+	return nil, RedisNil
+}
+
 var _ Cache = (*MemoryCache)(nil)

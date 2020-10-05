@@ -184,3 +184,57 @@ func TestRedisCacheMGet(t *testing.T) {
 	assert.Nil(t, values[1])
 	assert.Equal(t, []byte("val3"), values[2])
 }
+
+func TestRedisCacheHSetAndHLen(t *testing.T) {
+	c, _ := rc.NewRedisCache(redisUrl)
+	defer c.Close()
+
+	assert.NoError(t, c.HSet("hset_key1", "user01", 1))
+	defer func() {
+		c.Del("hset_key1")
+	}()
+	v, err := c.HLen("hset_key1")
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), v)
+}
+
+func TestRedisCacheHSetAndHLenWithRelevantKeys(t *testing.T) {
+	c, _ := rc.NewRedisCache(redisUrl)
+	defer c.Close()
+
+	item := rc.NewItem("hset_child", 10).Value("child").RelevantTo("asterisk*")
+	assert.NoError(t, c.HSet(item, "user01", 1))
+	defer func() {
+		c.Del(item)
+	}()
+	v, err := c.HLen(item)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), v)
+}
+
+func TestRedisCacheHGet(t *testing.T) {
+	c, _ := rc.NewRedisCache(redisUrl)
+	defer c.Close()
+
+	assert.NoError(t, c.HSet("hget_key01", "user01", "foobar"))
+	defer func() {
+		c.Del("hget_key01")
+	}()
+	v, err := c.HGet("hget_key01", "user01")
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("foobar"), v)
+}
+
+func TestRedisCacheHGetWithRelevantKey(t *testing.T) {
+	c, _ := rc.NewRedisCache(redisUrl)
+	defer c.Close()
+
+	item := rc.NewItem("hget_child", 10).Value("child").RelevantTo("asterisk*")
+	assert.NoError(t, c.HSet(item, "user01", "foobar"))
+	defer func() {
+		c.Del(item)
+	}()
+	v, err := c.HGet(item, "user01")
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("foobar"), v)
+}
