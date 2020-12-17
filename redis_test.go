@@ -10,14 +10,14 @@ import (
 const redisUrl = "redis://127.0.0.1:6379"
 
 func TestRedisCacheConnectRedis(t *testing.T) {
-	c, err := rc.NewRedisCache(redisUrl)
+	c, err := rc.NewRedisCache([]string{redisUrl})
 	assert.NoError(t, err)
 	assert.NotNil(t, c)
 	c.Close()
 }
 
 func TestRedisCacheGetCacheWithSimpleString(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+	c, _ := rc.NewRedisCache([]string{redisUrl})
 	defer c.Close()
 
 	err := c.Conn().Set("foo", "bar", 0).Err()
@@ -28,7 +28,7 @@ func TestRedisCacheGetCacheWithSimpleString(t *testing.T) {
 }
 
 func TestRedisCacheSetCacheWithPrimitiveData(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+	c, _ := rc.NewRedisCache([]string{redisUrl})
 	defer c.Close()
 
 	err := c.Set("key", "value")
@@ -36,7 +36,7 @@ func TestRedisCacheSetCacheWithPrimitiveData(t *testing.T) {
 }
 
 func TestRedisCacheSetCacheWithPrimitiveDataIncludeTTL(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+	c, _ := rc.NewRedisCache([]string{redisUrl})
 	defer c.Close()
 
 	err := c.Set("key", "value", 100)
@@ -44,7 +44,7 @@ func TestRedisCacheSetCacheWithPrimitiveDataIncludeTTL(t *testing.T) {
 }
 
 func TestRedisCacheSetCacheWithItem(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+	c, _ := rc.NewRedisCache([]string{redisUrl})
 	defer c.Close()
 
 	item := rc.NewItem("child", 1).Value("value").Ttl(10)
@@ -56,7 +56,7 @@ func TestRedisCacheSetCacheWithItem(t *testing.T) {
 }
 
 func TestRedisCacheDelCacheWithPrimitiveString(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+	c, _ := rc.NewRedisCache([]string{redisUrl})
 	defer c.Close()
 
 	err := c.Conn().Set("lorem", "ipsum", 0).Err()
@@ -69,7 +69,7 @@ func TestRedisCacheDelCacheWithPrimitiveString(t *testing.T) {
 }
 
 func TestRedisCacheUnlinkCacheWithPrimitiveString(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+	c, _ := rc.NewRedisCache([]string{redisUrl})
 	defer c.Close()
 
 	err := c.Conn().Set("lorem", "ipsum", 0).Err()
@@ -82,7 +82,7 @@ func TestRedisCacheUnlinkCacheWithPrimitiveString(t *testing.T) {
 }
 
 func TestRedisCacheFactoryRelevantKeys(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+	c, _ := rc.NewRedisCache([]string{redisUrl})
 	defer c.Close()
 
 	err := c.Conn().Set("parent_1", "parent", 0).Err()
@@ -99,7 +99,7 @@ func TestRedisCacheFactoryRelevantKeys(t *testing.T) {
 }
 
 func TestRedisCacheDelCacheWithRelevantItemRecursively(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+	c, _ := rc.NewRedisCache([]string{redisUrl})
 	defer c.Close()
 
 	err := c.Conn().Set("parent_1", "parent", 0).Err()
@@ -120,7 +120,7 @@ func TestRedisCacheDelCacheWithRelevantItemRecursively(t *testing.T) {
 }
 
 func TestRedisCacheUnlinkCacheWithRelevantItemRecursively(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+	c, _ := rc.NewRedisCache([]string{redisUrl})
 	defer c.Close()
 
 	err := c.Conn().Set("parent_1", "parent", 0).Err()
@@ -141,7 +141,7 @@ func TestRedisCacheUnlinkCacheWithRelevantItemRecursively(t *testing.T) {
 }
 
 func TestRedisCacheFactoryRelevantKeysWithAsterisk(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+	c, _ := rc.NewRedisCache([]string{redisUrl})
 	defer c.Close()
 
 	err := c.Set("asterisk_1", "asterisk", 0)
@@ -161,7 +161,7 @@ func TestRedisCacheFactoryRelevantKeysWithAsterisk(t *testing.T) {
 }
 
 func TestRedisCacheIncrement(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+	c, _ := rc.NewRedisCache([]string{redisUrl})
 	defer c.Close()
 
 	err := c.Increment("incr")
@@ -169,7 +169,7 @@ func TestRedisCacheIncrement(t *testing.T) {
 }
 
 func TestRedisCacheMGet(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+	c, _ := rc.NewRedisCache([]string{redisUrl})
 	defer c.Close()
 
 	assert.NoError(t, c.Set("key1", "val1"))
@@ -186,7 +186,7 @@ func TestRedisCacheMGet(t *testing.T) {
 }
 
 func TestRedisCacheHSetAndHLen(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+	c, _ := rc.NewRedisCache([]string{redisUrl})
 	defer c.Close()
 
 	assert.NoError(t, c.HSet("hset_key1", "user01", 1))
@@ -199,7 +199,7 @@ func TestRedisCacheHSetAndHLen(t *testing.T) {
 }
 
 func TestRedisCacheHSetAndHLenWithRelevantKeys(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+	c, _ := rc.NewRedisCache([]string{redisUrl})
 	defer c.Close()
 
 	item := rc.NewItem("hset_child", 10).Value("child").RelevantTo("asterisk*")
@@ -213,7 +213,7 @@ func TestRedisCacheHSetAndHLenWithRelevantKeys(t *testing.T) {
 }
 
 func TestRedisCacheHGet(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+	c, _ := rc.NewRedisCache([]string{redisUrl})
 	defer c.Close()
 
 	assert.NoError(t, c.HSet("hget_key01", "user01", "foobar"))
@@ -226,7 +226,7 @@ func TestRedisCacheHGet(t *testing.T) {
 }
 
 func TestRedisCacheHGetWithRelevantKey(t *testing.T) {
-	c, _ := rc.NewRedisCache(redisUrl)
+	c, _ := rc.NewRedisCache([]string{redisUrl})
 	defer c.Close()
 
 	item := rc.NewItem("hget_child", 10).Value("child").RelevantTo("asterisk*")

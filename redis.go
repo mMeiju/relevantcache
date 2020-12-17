@@ -17,19 +17,20 @@ var RedisNil = redis.Nil
 
 // Redis backend struct
 type RedisCache struct {
-	conn *redis.Client
+	conn redis.UniversalClient
 	w    io.Writer
 }
 
-func (r *RedisCache) Redis() *redis.Client {
+func (r *RedisCache) Redis() redis.UniversalClient {
 	return r.conn
 }
 
 // Create RedisCache pointer with some options
+// If the number of endpoints is two or more, RedisCache will include ClusterClient
 // Currently enabled options are:
 //
 // rc.WithSkipTLSVerify(bool): Skip TLS verification
-func NewRedisCache(endpoint string, opts ...option) (*RedisCache, error) {
+func NewRedisCache(endpoints []string, opts ...option) (*RedisCache, error) {
 	var skipVerify bool
 	var w io.Writer
 	for _, o := range opts {
@@ -42,25 +43,31 @@ func NewRedisCache(endpoint string, opts ...option) (*RedisCache, error) {
 			w = o.value.(io.Writer)
 		}
 	}
+	options := &redis.UniversalOptions{Addrs: []string{}}
 
-	u, err := url.Parse(endpoint)
-	if err != nil {
-		return nil, err
+	if len(endpoints) == 0 {
+		return nil, fmt.Errorf("endpoint must be specified")
 	}
-	options := &redis.Options{
-		Addr: u.Host,
-	}
-	if u.Scheme == tlsProtocol {
-		hp := strings.SplitN(u.Host, ":", 2)
-		options.TLSConfig = &tls.Config{
-			ServerName:         hp[0],
-			InsecureSkipVerify: false,
+	for _, endpoint := range endpoints {
+		u, err := url.Parse(endpoint)
+		if err != nil {
+			return nil, err
 		}
-		if skipVerify {
-			options.TLSConfig.InsecureSkipVerify = true
+		options.Addrs = append(options.Addrs, u.Host)
+
+		if u.Scheme == tlsProtocol {
+			hp := strings.SplitN(u.Host, ":", 2)
+			options.TLSConfig = &tls.Config{
+				ServerName:         hp[0],
+				InsecureSkipVerify: false,
+			}
+			if skipVerify {
+				options.TLSConfig.InsecureSkipVerify = true
+			}
 		}
 	}
-	conn := redis.NewClient(options)
+
+	conn := redis.NewUniversalClient(options)
 	if pong, err := conn.Ping().Result(); err != nil {
 		return nil, err
 	} else if pong != "PONG" {
