@@ -234,15 +234,14 @@ func (r *RedisCache) factoryRelevantKeysWithAsterisk(key string) []string {
 			debug(r.w, fmt.Sprintf("failed to scan keys for %s, %s\n", key, err.Error()))
 			return relevantKeys
 		}
-		cursor = c
-
 		for _, k := range keys {
 			ks := r.factoryRelevantKeys(k)
 			relevantKeys = append(relevantKeys, ks...)
 		}
-		if cursor == 0 {
+		if c == 0 {
 			break
 		}
+		cursor = c
 	}
 	debug(r.w, fmt.Sprintf("[REL-ASTERISK] %s is relevant to %q\n", key, relevantKeys))
 	return relevantKeys
