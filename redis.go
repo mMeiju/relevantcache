@@ -226,14 +226,23 @@ func (r *RedisCache) factoryRelevantKeys(key string) []string {
 // Dealing asterisk sign
 func (r *RedisCache) factoryRelevantKeysWithAsterisk(key string) []string {
 	relevantKeys := []string{}
-	keys, err := r.conn.Keys(key).Result()
-	if err != nil {
-		debug(r.w, fmt.Sprintf("failed to list keys for %s, %s\n", key, err.Error()))
-		return relevantKeys
-	}
-	for _, k := range keys {
-		ks := r.factoryRelevantKeys(k)
-		relevantKeys = append(relevantKeys, ks...)
+	cursor := uint64(0)
+	count := int64(1000)
+	for {
+		keys, c, err := r.conn.Scan(cursor, key, count).Result()
+		if err != nil {
+			debug(r.w, fmt.Sprintf("failed to scan keys for %s, %s\n", key, err.Error()))
+			return relevantKeys
+		}
+		cursor = c
+
+		for _, k := range keys {
+			ks := r.factoryRelevantKeys(k)
+			relevantKeys = append(relevantKeys, ks...)
+		}
+		if cursor == 0 {
+			break
+		}
 	}
 	debug(r.w, fmt.Sprintf("[REL-ASTERISK] %s is relevant to %q\n", key, relevantKeys))
 	return relevantKeys
