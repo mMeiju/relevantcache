@@ -17,11 +17,11 @@ var RedisNil = redis.Nil
 
 // Redis backend struct
 type RedisCache struct {
-	conn *redis.Client
+	conn redis.UniversalClient
 	w    io.Writer
 }
 
-func (r *RedisCache) Redis() *redis.Client {
+func (r *RedisCache) Redis() redis.UniversalClient {
 	return r.conn
 }
 
@@ -30,18 +30,7 @@ func (r *RedisCache) Redis() *redis.Client {
 //
 // rc.WithSkipTLSVerify(bool): Skip TLS verification
 func NewRedisCache(endpoint string, opts ...option) (*RedisCache, error) {
-	var skipVerify bool
-	var w io.Writer
-	for _, o := range opts {
-		switch o.name {
-		case optionNameSkipTLSVerify:
-			skipVerify = o.value.(bool)
-			// case optionNameSplitBufferSize:
-			// 	splitChunkSize = o.value.(int64)
-		case optionNameDebugWriter:
-			w = o.value.(io.Writer)
-		}
-	}
+	skipVerify, w := parseOpts(opts)
 
 	u, err := url.Parse(endpoint)
 	if err != nil {
@@ -70,6 +59,65 @@ func NewRedisCache(endpoint string, opts ...option) (*RedisCache, error) {
 		conn: conn,
 		w:    w,
 	}, nil
+}
+
+// Create RedisCache pointer for clusterd redis with some options
+// Currently enabled options are:
+//
+// rc.WithSkipTLSVerify(bool): Skip TLS verification
+func NewClusterRedisCache(endpoints []string, opts ...option) (*RedisCache, error) {
+	skipVerify, w := parseOpts(opts)
+
+	options := &redis.ClusterOptions{Addrs: []string{}}
+	if len(endpoints) == 0 {
+		return nil, fmt.Errorf("endpoint must be specified")
+	}
+
+	for _, endpoint := range endpoints {
+		u, err := url.Parse(endpoint)
+		if err != nil {
+			return nil, err
+		}
+
+		if u.Scheme == tlsProtocol {
+			hp := strings.SplitN(u.Host, ":", 2)
+			options.TLSConfig = &tls.Config{
+				ServerName:         hp[0],
+				InsecureSkipVerify: false,
+			}
+			if skipVerify {
+				options.TLSConfig.InsecureSkipVerify = true
+			}
+		}
+	}
+
+	conn := redis.NewClusterClient(options)
+	if pong, err := conn.Ping().Result(); err != nil {
+		return nil, err
+	} else if pong != "PONG" {
+		return nil, fmt.Errorf("failed to receive PONG from server")
+	}
+	return &RedisCache{
+		conn: conn,
+		w:    w,
+	}, nil
+}
+
+func parseOpts(opts []option) (bool, io.Writer) {
+	var skipVerify bool
+	var w io.Writer
+	for _, o := range opts {
+		switch o.name {
+		case optionNameSkipTLSVerify:
+			skipVerify = o.value.(bool)
+			// case optionNameSplitBufferSize:
+			// 	splitChunkSize = o.value.(int64)
+		case optionNameDebugWriter:
+			w = o.value.(io.Writer)
+		}
+	}
+
+	return skipVerify, w
 }
 
 // Close connection

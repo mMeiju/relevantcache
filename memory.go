@@ -32,7 +32,7 @@ type MemoryCache struct {
 	w    io.Writer
 }
 
-func (m *MemoryCache) Redis() *redis.Client {
+func (m *MemoryCache) Redis() redis.UniversalClient {
 	return nil
 }
 
