@@ -4,7 +4,7 @@ import (
 	"github.com/go-redis/redis"
 )
 
-func (r *RedisCache) Conn() *redis.Client {
+func (r *RedisCache) Conn() redis.UniversalClient {
 	return r.conn
 }
 

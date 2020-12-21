@@ -17,12 +17,12 @@ var RedisNil = redis.Nil
 
 // Redis backend struct
 type RedisCache struct {
-	conn      *redis.Client
+	conn      redis.UniversalClient
 	w         io.Writer
 	scanCount int64
 }
 
-func (r *RedisCache) Redis() *redis.Client {
+func (r *RedisCache) Redis() redis.UniversalClient {
 	return r.conn
 }
 
@@ -32,23 +32,9 @@ func (r *RedisCache) Redis() *redis.Client {
 // rc.WithSkipTLSVerify(bool): Skip TLS verification
 // rc.WithScanCount(int64): Count option for SCAN command, default is 1000
 func NewRedisCache(endpoint string, opts ...option) (*RedisCache, error) {
-	var skipVerify bool
-	var w io.Writer
-	scanCount := int64(1000)
-	for _, o := range opts {
-		switch o.name {
-		case optionNameSkipTLSVerify:
-			skipVerify = o.value.(bool)
-			// case optionNameSplitBufferSize:
-			// 	splitChunkSize = o.value.(int64)
-		case optionNameDebugWriter:
-			w = o.value.(io.Writer)
-		case optionNameScanCount:
-			scanCount = o.value.(int64)
-			if scanCount <= 0 {
-				return nil, fmt.Errorf("count value must be 1 or more")
-			}
-		}
+	skipVerify, w, scanCount, err := parseOpts(opts)
+	if err != nil {
+		return nil, err
 	}
 
 	u, err := url.Parse(endpoint)
@@ -79,6 +65,75 @@ func NewRedisCache(endpoint string, opts ...option) (*RedisCache, error) {
 		w:         w,
 		scanCount: scanCount,
 	}, nil
+}
+
+// Create RedisCache pointer for clusterd redis with some options
+// Currently enabled options are:
+//
+// rc.WithSkipTLSVerify(bool): Skip TLS verification
+func NewClusterRedisCache(endpoints []string, opts ...option) (*RedisCache, error) {
+	skipVerify, w, scanCount, err := parseOpts(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	options := &redis.ClusterOptions{Addrs: []string{}}
+	if len(endpoints) == 0 {
+		return nil, fmt.Errorf("endpoint must be specified")
+	}
+
+	for _, endpoint := range endpoints {
+		u, err := url.Parse(endpoint)
+		if err != nil {
+			return nil, err
+		}
+
+		if u.Scheme == tlsProtocol {
+			hp := strings.SplitN(u.Host, ":", 2)
+			options.TLSConfig = &tls.Config{
+				ServerName:         hp[0],
+				InsecureSkipVerify: false,
+			}
+			if skipVerify {
+				options.TLSConfig.InsecureSkipVerify = true
+			}
+		}
+	}
+
+	conn := redis.NewClusterClient(options)
+	if pong, err := conn.Ping().Result(); err != nil {
+		return nil, err
+	} else if pong != "PONG" {
+		return nil, fmt.Errorf("failed to receive PONG from server")
+	}
+	return &RedisCache{
+		conn:      conn,
+		w:         w,
+		scanCount: scanCount,
+	}, nil
+}
+
+func parseOpts(opts []option) (bool, io.Writer, int64, error) {
+	var skipVerify bool
+	var w io.Writer
+	scanCount := int64(1000)
+	for _, o := range opts {
+		switch o.name {
+		case optionNameSkipTLSVerify:
+			skipVerify = o.value.(bool)
+			// case optionNameSplitBufferSize:
+			// 	splitChunkSize = o.value.(int64)
+		case optionNameDebugWriter:
+			w = o.value.(io.Writer)
+		case optionNameScanCount:
+			scanCount = o.value.(int64)
+			if scanCount <= 0 {
+				return false, nil, 0, fmt.Errorf("count value must be 1 or more")
+			}
+		}
+	}
+
+	return skipVerify, w, scanCount, nil
 }
 
 // Close connection
