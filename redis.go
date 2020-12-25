@@ -17,8 +17,9 @@ var RedisNil = redis.Nil
 
 // Redis backend struct
 type RedisCache struct {
-	conn *redis.Client
-	w    io.Writer
+	conn      *redis.Client
+	w         io.Writer
+	scanCount int64
 }
 
 func (r *RedisCache) Redis() *redis.Client {
@@ -29,9 +30,11 @@ func (r *RedisCache) Redis() *redis.Client {
 // Currently enabled options are:
 //
 // rc.WithSkipTLSVerify(bool): Skip TLS verification
+// rc.WithScanCount(int64): Count option for SCAN command, default is 1000
 func NewRedisCache(endpoint string, opts ...option) (*RedisCache, error) {
 	var skipVerify bool
 	var w io.Writer
+	scanCount := int64(1000)
 	for _, o := range opts {
 		switch o.name {
 		case optionNameSkipTLSVerify:
@@ -40,6 +43,8 @@ func NewRedisCache(endpoint string, opts ...option) (*RedisCache, error) {
 			// 	splitChunkSize = o.value.(int64)
 		case optionNameDebugWriter:
 			w = o.value.(io.Writer)
+		case optionNameScanCount:
+			scanCount = o.value.(int64)
 		}
 	}
 
@@ -67,8 +72,9 @@ func NewRedisCache(endpoint string, opts ...option) (*RedisCache, error) {
 		return nil, fmt.Errorf("failed to receive PONG from server")
 	}
 	return &RedisCache{
-		conn: conn,
-		w:    w,
+		conn:      conn,
+		w:         w,
+		scanCount: scanCount,
 	}, nil
 }
 
@@ -227,9 +233,8 @@ func (r *RedisCache) factoryRelevantKeys(key string) []string {
 func (r *RedisCache) factoryRelevantKeysWithAsterisk(key string) []string {
 	relevantKeys := []string{}
 	cursor := uint64(0)
-	count := int64(1000)
 	for {
-		keys, c, err := r.conn.Scan(cursor, key, count).Result()
+		keys, c, err := r.conn.Scan(cursor, key, r.scanCount).Result()
 		if err != nil {
 			debug(r.w, fmt.Sprintf("failed to scan keys for %s, %s\n", key, err.Error()))
 			return relevantKeys
