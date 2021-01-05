@@ -10,10 +10,15 @@ import (
 const redisUrl = "redis://127.0.0.1:6379"
 
 func TestRedisCacheConnectRedis(t *testing.T) {
-	c, err := rc.NewRedisCache(redisUrl)
+	c, err := rc.NewRedisCache(redisUrl, rc.WithScanCount(10))
 	assert.NoError(t, err)
 	assert.NotNil(t, c)
 	c.Close()
+}
+
+func TestRedisCacheConnectRedisWithInvalidOption(t *testing.T) {
+	_, err := rc.NewRedisCache(redisUrl, rc.WithScanCount(-1))
+	assert.Error(t, err)
 }
 
 func TestRedisCacheGetCacheWithSimpleString(t *testing.T) {

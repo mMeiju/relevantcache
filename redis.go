@@ -45,6 +45,9 @@ func NewRedisCache(endpoint string, opts ...option) (*RedisCache, error) {
 			w = o.value.(io.Writer)
 		case optionNameScanCount:
 			scanCount = o.value.(int64)
+			if scanCount <= 0 {
+				return nil, fmt.Errorf("count value must be 1 or more")
+			}
 		}
 	}
 
